@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import 'package:todoApp/model/database.dart';
 import 'package:todoApp/model/todo.dart';
 import 'package:todoApp/widgets/custom_date_time_picker.dart';
@@ -31,28 +32,31 @@ class _AddTaskPageState extends State<AddTaskPage> {
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<Database>(context);
-
     _textTaskControler.clear();
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Center(
-              child: Text(
-            "Add new task",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          )),
+            child: Text(
+              '新增待办',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
           SizedBox(
             height: 24,
           ),
           CustomTextField(
-              labelText: 'Enter task name', controller: _textTaskControler),
+            labelText: '输入待办内容',
+            controller: _textTaskControler,
+          ),
           SizedBox(height: 12),
           CustomDateTimePicker(
             icon: Icons.date_range,
             onPressed: _pickDate,
-            value: new DateFormat("dd-MM-yyyy").format(_selectedDate),
+            value: DateFormat("yyyy-MM-dd").format(_selectedDate),
           ),
           SizedBox(
             height: 24,
@@ -63,17 +67,20 @@ class _AddTaskPageState extends State<AddTaskPage> {
             },
             onSave: () {
               if (_textTaskControler.text == "") {
-                print("data not found");
+                print('找不到数据');
               } else {
                 provider
-                    .insertTodoEntries(new TodoData(
+                    .insertTodoEntries(
+                      TodoData(
                         date: _selectedDate,
                         time: DateTime.now(),
                         isFinish: false,
                         task: _textTaskControler.text,
                         description: "",
                         todoType: TodoType.TYPE_TASK.index,
-                        id: null))
+                        id: null,
+                      ),
+                    )
                     .whenComplete(() => Navigator.of(context).pop());
               }
             },

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import 'package:todoApp/model/database.dart';
 import 'package:todoApp/model/todo.dart';
-import 'package:todoApp/widgets/custom_button.dart';
+import 'package:todoApp/widgets/custom_dialog.dart';
 
 class TaskPage extends StatefulWidget {
   @override
@@ -21,8 +21,18 @@ class _TaskPageState extends State<TaskPage> {
       value: provider.getTodoByType(TodoType.TYPE_TASK.index),
       child: Consumer<List<TodoData>>(
         builder: (context, _dataList, child) {
+          if (_dataList != null && _dataList.length < 1) {
+            return Center(
+              child: Text(
+                '暂无待办...',
+                style: TextStyle(color: Colors.black54),
+              ),
+            );
+          }
           return _dataList == null
-              ? Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: CircularProgressIndicator(),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(0),
                   itemCount: _dataList.length,
@@ -37,92 +47,10 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
+  // 未完成任务
   Widget _taskUncomplete(TodoData data) {
-    return InkWell(
-      onTap: () {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return Dialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12))),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text("Confirm Task",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      Text(data.task),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      Text(new DateFormat("dd-MM-yyyy").format(data.date)),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      CustomButton(
-                        buttonText: "Complete",
-                        onPressed: () {
-                          provider
-                              .completeTodoEntries(data.id)
-                              .whenComplete(() => Navigator.of(context).pop());
-                        },
-                        color: Theme.of(context).accentColor,
-                        textColor: Colors.white,
-                      )
-                    ],
-                  ),
-                ),
-              );
-            });
-      },
-      onLongPress: () {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return Dialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12))),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text("Delete Task",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      Text(data.task),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      Text(new DateFormat("dd-MM-yyyy").format(data.date)),
-                      SizedBox(
-                        height: 24,
-                      ),
-                      CustomButton(
-                        buttonText: "Delete",
-                        onPressed: () {
-                          provider
-                              .deleteTodoEntries(data.id)
-                              .whenComplete(() => Navigator.of(context).pop());
-                        },
-                        color: Theme.of(context).accentColor,
-                        textColor: Colors.white,
-                      )
-                    ],
-                  ),
-                ),
-              );
-            });
-      },
+    return _dialogLayout(
+      data: data,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
         child: Row(
@@ -135,32 +63,86 @@ class _TaskPageState extends State<TaskPage> {
             SizedBox(
               width: 28,
             ),
-            Text(data.task)
+            Expanded(
+              child: Text(
+                data.task,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  // 已完成任务
   Widget _taskComplete(TodoData data) {
-    return Container(
-      foregroundDecoration: BoxDecoration(color: Color(0x60FDFDFD)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-        child: Row(
-          children: <Widget>[
-            Icon(
-              Icons.radio_button_checked,
-              color: Theme.of(context).accentColor,
-              size: 20,
-            ),
-            SizedBox(
-              width: 28,
-            ),
-            Text(data.task)
-          ],
+    return _dialogLayout(
+      data: data,
+      child: Container(
+        foregroundDecoration: BoxDecoration(color: Color(0x60FDFDFD)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.radio_button_checked,
+                color: Theme.of(context).accentColor,
+                size: 20,
+              ),
+              SizedBox(
+                width: 28,
+              ),
+              Text(data.task)
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _dialogLayout({@required TodoData data, @required Widget child}) {
+    return InkWell(
+      onTap: data.isFinish
+          ? null
+          : () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return CustomDialog(
+                    title: '完成待办',
+                    text: data.task,
+                    date: data.date,
+                    buttonText: '完成',
+                    onPressed: () {
+                      provider.completeTodoEntries(data.id).whenComplete(
+                            () => Navigator.of(context).pop(),
+                          );
+                    },
+                  );
+                },
+              );
+            },
+      onLongPress: () {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return CustomDialog(
+              title: '删除待办',
+              text: data.task,
+              date: data.date,
+              buttonText: '删除',
+              onPressed: () {
+                provider.deleteTodoEntries(data.id).whenComplete(
+                      () => Navigator.of(context).pop(),
+                    );
+              },
+            );
+          },
+        );
+      },
+      child: child,
     );
   }
 }
